@@ -1,9 +1,13 @@
 package com.example.ybd
 
 import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -21,13 +25,14 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-    }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         askNotificationPermission()
+        askExactAlarmPermission() // <-- ДОБАВЛЕНО: Запрос права на будильник
         NotificationHelper.createNotificationChannel(this)
 
         viewPager = findViewById(R.id.viewPager)
@@ -59,6 +64,18 @@ class MainActivity : ComponentActivity() {
                 PackageManager.PERMISSION_GRANTED
             ) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun askExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // Android 12+
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Разрешение не выдано. Отправляем пользователя в настройки.
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).also {
+                    startActivity(it)
+                }
             }
         }
     }
